@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+  <body>
+    <iframe frameborder="0" id="ip-iframe"></iframe>
+    <script>
+      //This IIFE can be put on any page alongside an iframe with id "ip-iframe".
+      //It will allow the page and the iframe to communicate in ways we have commonly needed,
+      //such as the iframe getting the url and search params, or requesting navigation to a new url.
+
+      (function run() {
+        //START general settings
+        const startingWidth = "100%";
+        const startingHeight = "1000px";
+        const src = "http://localhost:3000/customizer";
+        //END general settings
+
+        //weird things happen in Oxygen if we let the script run there, so don't
+        const inOxygenEditor = document.getElementById("ct-builder") !== null;
+        if (inOxygenEditor) return;
+
+        const iframe = document.getElementById("ip-iframe");
+        if (!iframe) {
+          console.error("iframe with id 'ip-iframe' not found");
+          return;
+        }
+
+        //main execution
+        setup();
+
+        function setup() {
+          window.addEventListener("message", receiveMessage);
+
+          iframe.width = startingWidth;
+          iframe.height = startingHeight;
+          iframe.src = src;
+        }
+
+        function receiveMessage(event) {
+          const type = event.data.type;
+
+          if (type === "ip-iframe-request-url") {
+            respond({
+              href: window.location.href,
+              origin: window.location.origin,
+              search: window.location.search,
+              pathname: window.location.pathname,
+            });
+          }
+
+          if (type === "ip-iframe-navigation-request") {
+            const href = event.data.href;
+            if (href) window.location.href = href;
+          }
+
+          if (type === "ip-iframe-height-change-request") {
+            const height = event.data.height;
+            if (height) iframe.height = height;
+          }
+        }
+
+        function respond(data) {
+          iframe.contentWindow.postMessage(data, "*");
+        }
+      })();
+    </script>
+  </body>
+</html>
